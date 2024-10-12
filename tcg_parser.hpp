@@ -118,20 +118,7 @@ namespace tcg_parser
 		return {};
 	}
 
-	struct TCG_PCR_EVENT
-	{
-		uint32_t PCRIndex;
-		event_type EventType;
-		char Digest[20];
-		uint32_t EventSize;
-		uint8_t Event[0];
-	};
-
-	struct TCG_EfiSpecIdEventAlgorithmSize
-	{
-		uint16_t HashAlg;
-		uint16_t DigestSize;
-	};
+#pragma pack(push, 1)
 
 	struct tcg_pgr_event_2
 	{
@@ -148,6 +135,146 @@ namespace tcg_parser
 		std::array<char, 20> digest;
 		event_payload_t event;
 	};
+
+#pragma pack(pop)
+
+	namespace details
+	{
+		template <typename T>
+		std::optional<T> read_variable(std::istream& stream)
+		{
+			T event;
+
+			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_variable_boot, unicode_name));
+				!stream.good())
+			{
+				return {};
+			}
+
+			uint64_t unicode_name_length;
+
+			if (stream.read(reinterpret_cast<char*>(&unicode_name_length), sizeof(unicode_name_length)); !stream.good())
+			{
+				return {};
+			}
+
+			uint64_t variable_data_length;
+
+			if (stream.read(reinterpret_cast<char*>(&variable_data_length), sizeof(variable_data_length));
+				!stream.good())
+			{
+				return {};
+			}
+
+			event.unicode_name.resize(unicode_name_length);
+
+			if (stream.read(reinterpret_cast<char*>(event.unicode_name.data()), unicode_name_length * sizeof(char16_t));
+				!stream.good())
+			{
+				return {};
+			}
+
+			event.variable_data.resize(variable_data_length);
+
+			if (stream.read(reinterpret_cast<char*>(event.variable_data.data()), variable_data_length); !stream.good())
+			{
+				return {};
+			}
+
+			return event;
+		}
+
+		template <typename T>
+		std::optional<T> read_image(std::istream& stream)
+		{
+			T event;
+
+			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_boot_services_application, device_path));
+				!stream.good())
+			{
+				return {};
+			}
+
+			uint64_t size_of_device_path;
+
+			if (stream.read(reinterpret_cast<char*>(&size_of_device_path), sizeof(size_of_device_path)); !stream.good())
+			{
+				return {};
+			}
+
+			if (size_of_device_path)
+			{
+				event.device_path = tcg_parser::device_path::parse(stream);
+			}
+
+			return event;
+		}
+
+		template <typename T>
+		std::optional<T> read_struct(std::istream& stream)
+		{
+			T event;
+
+			if (stream.read(reinterpret_cast<char*>(&event), sizeof(event)); !stream.good())
+			{
+				return {};
+			}
+
+			return event;
+		}
+
+		template <typename T>
+		std::optional<T> read_blob(std::istream& stream)
+		{
+			T event;
+
+			uint8_t description_size;
+
+			if (stream.read(reinterpret_cast<char*>(&description_size), sizeof(description_size)); !stream.good())
+			{
+				return {};
+			}
+
+			event.blob_description.resize(description_size);
+
+			if (stream.read(event.blob_description.data(), description_size); !stream.good())
+			{
+				return {};
+			}
+
+			if (stream.read(reinterpret_cast<char*>(&event.blob_base), sizeof(event.blob_base)); !stream.good())
+			{
+				return {};
+			}
+
+			if (stream.read(reinterpret_cast<char*>(&event.blob_length), sizeof(event.blob_length)); !stream.good())
+			{
+				return {};
+			}
+
+			return event;
+		}
+
+		template <typename T>
+		std::optional<T> read_string(std::istream& stream)
+		{
+			T event;
+
+			while (stream.good())
+			{
+				char character;
+
+				if (stream.read(reinterpret_cast<char*>(&character), sizeof(character)); !character)
+				{
+					break;
+				}
+
+				event.data += character;
+			}
+
+			return event;
+		}
+	}
 
 	event_payload_t read_event_payload(const auto& header, const std::string& buffer)
 	{
@@ -217,84 +344,33 @@ namespace tcg_parser
 			return event;
 		}
 
-		switch (header.event_type)
-		{
-		case EV_EFI_PLATFORM_FIRMWARE_BLOB: {
-			events::efi_platform_firmware_blob event;
-
-			if (stream.read(reinterpret_cast<char*>(&event), sizeof(event)); !stream.good())
+		auto read_event = [&]() -> std::optional<event_payload_t> {
+			switch (header.event_type)
 			{
-				return buffer;
+			// case EV_S_CRTM_VERSION:
+			// 	return details::read_blob<events::s_crtm_version>(stream);
+			case EV_EFI_PLATFORM_FIRMWARE_BLOB:
+				return details::read_struct<events::efi_platform_firmware_blob>(stream);
+			case EV_EFI_VARIABLE_DRIVER_CONFIG:
+				return details::read_variable<events::efi_variable_driver_config>(stream);
+			case EV_EFI_BOOT_SERVICES_APPLICATION:
+				return details::read_image<events::efi_boot_services_application>(stream);
+			case EV_EFI_BOOT_SERVICES_DRIVER:
+				return details::read_image<events::efi_boot_services_driver>(stream);
+			case EV_EFI_RUNTIME_SERVICES_DRIVER:
+				return details::read_image<events::efi_runtime_services_driver>(stream);
+			case EV_EFI_VARIABLE_BOOT:
+				return details::read_variable<events::efi_variable_boot>(stream);
+			case EV_POST_CODE:
+				return details::read_string<events::post_code>(stream);
 			}
 
-			return event;
-		}
-		case EV_EVENT_TAG:
 			return buffer;
-		case EV_EFI_BOOT_SERVICES_APPLICATION: {
-			events::efi_boot_services_application event;
+		};
 
-			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_boot_services_application, device_path));
-				!stream.good())
-			{
-				return buffer;
-			}
-
-			uint64_t size_of_device_path;
-
-			if (stream.read(reinterpret_cast<char*>(&size_of_device_path), sizeof(size_of_device_path)); !stream.good())
-			{
-				return buffer;
-			}
-
-			if (size_of_device_path)
-			{
-				event.device_path = tcg_parser::device_path::parse(stream);
-			}
-
-			return event;
-		}
-		case EV_EFI_VARIABLE_BOOT: {
-			events::efi_variable_boot event;
-
-			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_variable_boot, unicode_name));
-				!stream.good())
-			{
-				return buffer;
-			}
-
-			uint64_t unicode_name_length;
-
-			if (stream.read(reinterpret_cast<char*>(&unicode_name_length), sizeof(unicode_name_length)); !stream.good())
-			{
-				return buffer;
-			}
-
-			uint64_t variable_data_length;
-
-			if (stream.read(reinterpret_cast<char*>(&variable_data_length), sizeof(variable_data_length));
-				!stream.good())
-			{
-				return buffer;
-			}
-
-			event.unicode_name.resize(unicode_name_length);
-
-			if (stream.read(reinterpret_cast<char*>(event.unicode_name.data()), unicode_name_length * sizeof(char16_t));
-				!stream.good())
-			{
-				return buffer;
-			}
-
-			event.variable_data.resize(variable_data_length);
-
-			if (stream.read(reinterpret_cast<char*>(event.variable_data.data()), variable_data_length); !stream.good())
-			{
-				return buffer;
-			}
-
-			return event;
-		}
+		if (auto event = read_event())
+		{
+			return *event;
 		}
 
 		return buffer;
@@ -316,12 +392,7 @@ namespace tcg_parser
 
 		tcg_pgr_event_2 header;
 
-		if (stream.read(reinterpret_cast<char*>(&header.pcr_index), sizeof(header.pcr_index)); !stream.good())
-		{
-			return {};
-		}
-
-		if (stream.read(reinterpret_cast<char*>(&header.event_type), sizeof(header.event_type)); !stream.good())
+		if (stream.read(reinterpret_cast<char*>(&header), offsetof(tcg_pgr_event_2, digests)); !stream.good())
 		{
 			return {};
 		}
@@ -388,17 +459,7 @@ namespace tcg_parser
 
 		tcg_pgr_event_1 header;
 
-		if (stream.read(reinterpret_cast<char*>(&header.pcr_index), sizeof(header.pcr_index)); !stream.good())
-		{
-			return {};
-		}
-
-		if (stream.read(reinterpret_cast<char*>(&header.event_type), sizeof(header.event_type)); !stream.good())
-		{
-			return {};
-		}
-
-		if (stream.read(header.digest.data(), size(header.digest)); !stream.good())
+		if (stream.read(reinterpret_cast<char*>(&header), offsetof(tcg_pgr_event_1, event)); !stream.good())
 		{
 			return {};
 		}

@@ -100,9 +100,7 @@ namespace tcg_parser
 				{
 					char16_t character;
 
-					stream.read(reinterpret_cast<char*>(&character), sizeof(character));
-
-					if (!character)
+					if (stream.read(reinterpret_cast<char*>(&character), sizeof(character)); !character)
 					{
 						break;
 					}
