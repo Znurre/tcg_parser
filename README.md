@@ -4,7 +4,7 @@ A lightweight, header only C++ parser library for TCG event logs.
 
 # Example
 
-```
+```c++
 #include <fstream>
 #include <iomanip>
 #include <iostream>
