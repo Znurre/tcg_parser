@@ -59,9 +59,15 @@ namespace tcg_parser
 			uint64_t blob_length;
 		};
 
+		struct uefi_blob_1
+		{
+			uint64_t blob_base;
+			uint64_t blob_length;
+		};
+
 		struct post_code
 		{
-			std::string data;
+			std::variant<std::string, uefi_blob_1, uefi_blob_2> data;
 		};
 
 		struct efi_variable_base
@@ -79,13 +85,35 @@ namespace tcg_parser
 		{
 		};
 
-		struct efi_platform_firmware_blob
+		struct efi_variable_authority : efi_variable_base
 		{
-			uint64_t blob_base;
-			uint64_t blob_length;
 		};
 
-		struct s_crtm_version : uefi_blob_2
+		struct efi_action
+		{
+			std::string data;
+		};
+
+		struct ipl
+		{
+			std::string data;
+		};
+
+		struct efi_platform_firmware_blob : uefi_blob_1
+		{
+		};
+
+		struct s_crtm_version
+		{
+			std::u16string data;
+		};
+
+		struct efi_hcrtm
+		{
+			std::variant<std::string, uefi_blob_1, uefi_blob_2> data;
+		};
+
+		struct separator
 		{
 		};
 
@@ -104,5 +132,10 @@ namespace tcg_parser
 		events::efi_variable_driver_config,
 		events::efi_boot_services_driver,
 		events::efi_runtime_services_driver,
-		events::post_code>;
+		events::post_code,
+		events::efi_action,
+		events::ipl,
+		events::separator,
+		events::efi_hcrtm,
+		events::efi_variable_authority>;
 } // namespace tcg_parser

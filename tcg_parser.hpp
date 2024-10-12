@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <optional>
 #include <sstream>
 #include <unordered_map>
@@ -262,7 +263,7 @@ namespace tcg_parser
 
 			while (stream.good())
 			{
-				char character;
+				char16_t character;
 
 				if (stream.read(reinterpret_cast<char*>(&character), sizeof(character)); !character)
 				{
@@ -273,6 +274,40 @@ namespace tcg_parser
 			}
 
 			return event;
+		}
+
+		template <typename T>
+		std::optional<T> read_string_or_blob(std::istream& stream, const std::string& buffer)
+		{
+			for (auto character : buffer)
+			{
+				if (!std::isprint(character))
+				{
+					if (size(buffer) == sizeof(events::uefi_blob_1))
+					{
+						if (auto blob = details::read_struct<events::uefi_blob_1>(stream))
+						{
+							return T {
+								.data = *blob,
+							};
+						}
+					}
+					else if (auto blob = details::read_blob<events::uefi_blob_2>(stream))
+					{
+						return T {
+							.data = *blob,
+						};
+					}
+					else
+					{
+						return {};
+					}
+				}
+			}
+
+			return T {
+				.data = buffer,
+			};
 		}
 	}
 
@@ -347,8 +382,10 @@ namespace tcg_parser
 		auto read_event = [&]() -> std::optional<event_payload_t> {
 			switch (header.event_type)
 			{
-			// case EV_S_CRTM_VERSION:
-			// 	return details::read_blob<events::s_crtm_version>(stream);
+			case EV_S_CRTM_VERSION:
+				return details::read_string<events::s_crtm_version>(stream);
+			case EV_EFI_HCRTM_EVENT:
+				return details::read_string_or_blob<events::efi_hcrtm>(stream, buffer);
 			case EV_EFI_PLATFORM_FIRMWARE_BLOB:
 				return details::read_struct<events::efi_platform_firmware_blob>(stream);
 			case EV_EFI_VARIABLE_DRIVER_CONFIG:
@@ -362,7 +399,17 @@ namespace tcg_parser
 			case EV_EFI_VARIABLE_BOOT:
 				return details::read_variable<events::efi_variable_boot>(stream);
 			case EV_POST_CODE:
-				return details::read_string<events::post_code>(stream);
+				return details::read_string_or_blob<events::post_code>(stream, buffer);
+			case EV_EFI_ACTION:
+				return events::efi_action {
+					.data = buffer,
+				};
+			case EV_IPL:
+				return details::read_string<events::ipl>(stream);
+			case EV_SEPARATOR:
+				return events::separator {};
+			case EV_EFI_VARIABLE_AUTHORITY:
+				return details::read_variable<events::efi_variable_authority>(stream);
 			}
 
 			return buffer;

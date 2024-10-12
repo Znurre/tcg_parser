@@ -6,7 +6,8 @@
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, auto event)
 {
-	std::cout << "Unknown event (" << tcg_parser::to_string(header.event_type) << ")" << std::endl;
+	std::cout << "Unknown event " << header.event_type << " (" << tcg_parser::to_string(header.event_type) << ")"
+			  << std::endl;
 }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_boot_services_application& event)
@@ -31,20 +32,7 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 	std::cout << "\tLength in memory: 0x" << std::hex << event.image_length_in_memory << std::endl;
 	std::cout << "\tLink time address: 0x" << std::hex << event.image_link_time_address << std::endl;
 
-	std::cout << "\tPath: ";
-
-	for (auto& path : event.device_path)
-	{
-		if (auto file = std::get_if<tcg_parser::device_path::media::file>(&path))
-		{
-			for (auto c : file->path)
-			{
-				std::cout << static_cast<char>(c);
-			}
-		}
-	}
-
-	std::cout << std::endl;
+	std::cout << "\tPath: " << tcg_parser::device_path::to_string(event.device_path) << std::endl;
 }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_boot_services_driver& event)
@@ -69,20 +57,7 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 	std::cout << "\tLength in memory: 0x" << std::hex << event.image_length_in_memory << std::endl;
 	std::cout << "\tLink time address: 0x" << std::hex << event.image_link_time_address << std::endl;
 
-	std::cout << "\tPath: ";
-
-	for (auto& path : event.device_path)
-	{
-		if (auto file = std::get_if<tcg_parser::device_path::media::file>(&path))
-		{
-			for (auto c : file->path)
-			{
-				std::cout << static_cast<char>(c);
-			}
-		}
-	}
-
-	std::cout << std::endl;
+	std::cout << "\tPath: " << tcg_parser::device_path::to_string(event.device_path) << std::endl;
 }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_runtime_services_driver& event)
@@ -107,20 +82,7 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 	std::cout << "\tLength in memory: 0x" << std::hex << event.image_length_in_memory << std::endl;
 	std::cout << "\tLink time address: 0x" << std::hex << event.image_link_time_address << std::endl;
 
-	std::cout << "\tPath: ";
-
-	for (auto& path : event.device_path)
-	{
-		if (auto file = std::get_if<tcg_parser::device_path::media::file>(&path))
-		{
-			for (auto c : file->path)
-			{
-				std::cout << static_cast<char>(c);
-			}
-		}
-	}
-
-	std::cout << std::endl;
+	std::cout << "\tPath: " << tcg_parser::device_path::to_string(event.device_path) << std::endl;
 }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_variable_boot& event)
@@ -144,26 +106,47 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 	std::cout << std::endl;
 }
 
-void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_variable_driver_config& event)
-{
-	std::cout << "EFI_VARIABLE_DRIVER_CONFIG:" << std::endl;
-	std::cout << "\tName: ";
+// void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_variable_driver_config& event)
+// {
+// 	std::cout << "EFI_VARIABLE_DRIVER_CONFIG:" << std::endl;
+// 	std::cout << "\tName: ";
 
-	for (auto c : event.unicode_name)
-	{
-		std::cout << static_cast<char>(c);
-	}
+// 	for (auto c : event.unicode_name)
+// 	{
+// 		std::cout << static_cast<char>(c);
+// 	}
 
-	std::cout << std::endl;
-	std::cout << "\tData: ";
+// 	std::cout << std::endl;
+// 	std::cout << "\tData: ";
 
-	for (auto c : event.variable_data)
-	{
-		std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c);
-	}
+// 	for (auto c : event.variable_data)
+// 	{
+// 		std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c);
+// 	}
 
-	std::cout << std::endl;
-}
+// 	std::cout << std::endl;
+// }
+
+// void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_variable_authority& event)
+// {
+// 	std::cout << "EFI_VARIABLE_DRIVER_AUTHORITY:" << std::endl;
+// 	std::cout << "\tName: ";
+
+// 	for (auto c : event.unicode_name)
+// 	{
+// 		std::cout << static_cast<char>(c);
+// 	}
+
+// 	std::cout << std::endl;
+// 	std::cout << "\tData: ";
+
+// 	for (auto c : event.variable_data)
+// 	{
+// 		std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c);
+// 	}
+
+// 	std::cout << std::endl;
+// }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_platform_firmware_blob& event)
 {
@@ -177,16 +160,85 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 {
 	std::cout << "POST_CODE:" << std::endl;
 
-	std::cout << "\tData: " << event.data << std::endl;
+	std::visit(
+		[](const auto& contents) {
+			if constexpr (std::same_as<decltype(contents), const tcg_parser::events::uefi_blob_2&>)
+			{
+				std::cout << "\tBlob description: " << std::hex << contents.blob_description << std::endl;
+				std::cout << "\tBlob base: " << std::hex << contents.blob_base << std::endl;
+				std::cout << "\tBlob length: " << std::hex << contents.blob_length << std::endl;
+			}
+			else if constexpr (std::same_as<decltype(contents), const tcg_parser::events::uefi_blob_1&>)
+			{
+				std::cout << "\tBlob base: " << std::hex << contents.blob_base << std::endl;
+				std::cout << "\tBlob length: " << std::hex << contents.blob_length << std::endl;
+			}
+			else
+			{
+				std::cout << "\tData: " << contents << std::endl;
+			}
+		},
+		event.data
+	);
 }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::s_crtm_version& event)
 {
 	std::cout << "S_CRTM_VERSION:" << std::endl;
 
-	std::cout << "\tBlob description: " << event.blob_description << std::endl;
-	std::cout << "\tBlob base: " << std::hex << event.blob_base << std::endl;
-	std::cout << "\tBlob length: " << std::hex << event.blob_length << std::endl;
+	std::cout << "\tData: ";
+
+	for (auto c : event.data)
+	{
+		std::cout << static_cast<char>(c);
+	}
+
+	std::cout << std::endl;
+}
+
+void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_action& event)
+{
+	std::cout << "EFI_ACTION:" << std::endl;
+
+	std::cout << "\tData: " << event.data << std::endl;
+}
+
+void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::ipl& event)
+{
+	std::cout << "IPL:" << std::endl;
+
+	std::cout << "\tData: " << event.data << std::endl;
+}
+
+void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_hcrtm& event)
+{
+	std::cout << "EFI_HCRTM:" << std::endl;
+
+	std::visit(
+		[](const auto& contents) {
+			if constexpr (std::same_as<decltype(contents), const tcg_parser::events::uefi_blob_2&>)
+			{
+				std::cout << "\tBlob description: " << std::hex << contents.blob_description << std::endl;
+				std::cout << "\tBlob base: " << std::hex << contents.blob_base << std::endl;
+				std::cout << "\tBlob length: " << std::hex << contents.blob_length << std::endl;
+			}
+			else if constexpr (std::same_as<decltype(contents), const tcg_parser::events::uefi_blob_1&>)
+			{
+				std::cout << "\tBlob base: " << std::hex << contents.blob_base << std::endl;
+				std::cout << "\tBlob length: " << std::hex << contents.blob_length << std::endl;
+			}
+			else
+			{
+				std::cout << "\tData: " << contents << std::endl;
+			}
+		},
+		event.data
+	);
+}
+
+void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::separator& event)
+{
+	std::cout << "SEPARATOR" << std::endl;
 }
 
 int main()

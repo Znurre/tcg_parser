@@ -8,4 +8,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(tcg_parser main.cpp
 	device_path.hpp
 	events.hpp
-	tcg_parser.hpp)
+	tcg_parser.hpp
+	acpi.hpp)

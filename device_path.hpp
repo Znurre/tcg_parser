@@ -2,10 +2,15 @@
 
 #include <array>
 #include <cstdint>
+#include <format>
+#include <iostream>
 #include <istream>
+#include <numeric>
 #include <string>
 #include <variant>
 #include <vector>
+
+#include "acpi.hpp"
 
 namespace tcg_parser
 {
@@ -43,7 +48,7 @@ namespace tcg_parser
 			struct nvme_namespace
 			{
 				uint32_t namespace_identifier;
-				uint64_t extended_unique_identifier;
+				std::array<uint8_t, 8> extended_unique_identifier;
 			};
 		} // namespace messaging
 
@@ -311,6 +316,180 @@ namespace tcg_parser
 			}
 
 			return paths;
+		}
+
+		std::string to_string(const device_path::hardware::pci& path)
+		{
+			return std::format("\\Pci(0x{:x}, 0x{:x})", path.device, path.function);
+		}
+
+		std::string to_string(const device_path::acpi::acpi& path)
+		{
+			switch (path.hid)
+			{
+			case EFIDP_ACPI_PCI_ROOT_HID:
+				return std::format("\\PciRoot(0x{:x})", path.uid);
+			case EFIDP_ACPI_CONTAINER_0A05_HID:
+			case EFIDP_ACPI_CONTAINER_0A06_HID:
+				return "\\AcpiContainer()";
+			case EFIDP_ACPI_PCIE_ROOT_HID:
+				return std::format("\\PcieRoot(0x{:x})", path.uid);
+			case EFIDP_ACPI_EC_HID:
+				return "\\EmbeddedController()";
+			case EFIDP_ACPI_FLOPPY_HID:
+				return std::format("\\Floppy(0x{:x})", path.uid);
+			case EFIDP_ACPI_KEYBOARD_HID:
+				return std::format("\\Keyboard(0x{:x})", path.uid);
+			case EFIDP_ACPI_SERIAL_HID:
+				return std::format("\\Serial(0x{:x})", path.uid);
+			default:
+				return std::format("\\Acpi(0x{:8x},0x{:x})", path.hid, path.uid);
+			}
+		}
+
+		std::string to_string(const device_path::acpi::extended_acpi& path)
+		{
+			return "\\AcpiExp()";
+		}
+
+		std::string to_string(const device_path::messaging::nvme_namespace& path)
+		{
+			return std::format(
+				"\\NVMe(0x{:x}, {:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X})",
+				path.namespace_identifier,
+				path.extended_unique_identifier[0],
+				path.extended_unique_identifier[1],
+				path.extended_unique_identifier[2],
+				path.extended_unique_identifier[3],
+				path.extended_unique_identifier[4],
+				path.extended_unique_identifier[5],
+				path.extended_unique_identifier[6],
+				path.extended_unique_identifier[7]
+			);
+		}
+
+		std::string to_string(const media::file& path)
+		{
+			std::string target;
+
+			std::transform(begin(path.path), end(path.path), back_inserter(target), [](auto character) {
+				return static_cast<char>(character);
+			});
+
+			return target;
+		}
+
+		std::string to_string(const media::piwg_firmware_volume& path)
+		{
+			return std::format(
+				"\\FvVol({{{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:"
+				"02X}{:02X}}})",
+				path.firmware_volume_name[0],
+				path.firmware_volume_name[1],
+				path.firmware_volume_name[2],
+				path.firmware_volume_name[3],
+				path.firmware_volume_name[4],
+				path.firmware_volume_name[5],
+				path.firmware_volume_name[6],
+				path.firmware_volume_name[7],
+				path.firmware_volume_name[8],
+				path.firmware_volume_name[9],
+				path.firmware_volume_name[10],
+				path.firmware_volume_name[11],
+				path.firmware_volume_name[12],
+				path.firmware_volume_name[13],
+				path.firmware_volume_name[14],
+				path.firmware_volume_name[15]
+			);
+		}
+
+		std::string to_string(const media::piwg_firmware_files& path)
+		{
+			return std::format(
+				"\\FvFile({{{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:"
+				"02X}{:02X}}})",
+				path.firmware_file_name[0],
+				path.firmware_file_name[1],
+				path.firmware_file_name[2],
+				path.firmware_file_name[3],
+				path.firmware_file_name[4],
+				path.firmware_file_name[5],
+				path.firmware_file_name[6],
+				path.firmware_file_name[7],
+				path.firmware_file_name[8],
+				path.firmware_file_name[9],
+				path.firmware_file_name[10],
+				path.firmware_file_name[11],
+				path.firmware_file_name[12],
+				path.firmware_file_name[13],
+				path.firmware_file_name[14],
+				path.firmware_file_name[15]
+			);
+		}
+
+		std::string to_string(const media::hard_drive& path)
+		{
+			switch (path.signature_type)
+			{
+			case 1: // MBR
+				return std::format(
+					"\\HD({},MBR,0x{:x},0x{:x},0x{:x})",
+					path.partition_number,
+					*reinterpret_cast<const uint32_t*>(path.signature.data()),
+					path.partition_start,
+					path.partition_size
+				);
+			case 2: // GPT
+				return std::format(
+					"\\HD({},GPT,{{{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:"
+					"02X}{:02X}{:02X}{:02X}{:02X}{:02X}}},0x{:"
+					"x},0x{:x})",
+					path.partition_number,
+					path.signature[0],
+					path.signature[1],
+					path.signature[2],
+					path.signature[3],
+					path.signature[4],
+					path.signature[5],
+					path.signature[6],
+					path.signature[7],
+					path.signature[8],
+					path.signature[9],
+					path.signature[10],
+					path.signature[11],
+					path.signature[12],
+					path.signature[13],
+					path.signature[14],
+					path.signature[15],
+					path.partition_start,
+					path.partition_size
+				);
+			default:
+				return std::format(
+					"\\HD({},{},{:x},{:x}",
+					path.partition_number,
+					path.signature_type,
+					path.partition_start,
+					path.partition_size
+				);
+			}
+		}
+
+		std::string to_string(const device_path_t& path)
+		{
+			return std::visit(
+				[](auto&& path) {
+					return to_string(path);
+				},
+				path
+			);
+		}
+
+		std::string to_string(const std::vector<device_path_t>& paths)
+		{
+			return std::accumulate(begin(paths), end(paths), std::string(), [](auto string, auto path) {
+				return string + to_string(path);
+			});
 		}
 	} // namespace device_path
 } // namespace tcg_parser
