@@ -38,20 +38,7 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 	std::cout << "\tLength in memory: 0x" << std::hex << event.image_length_in_memory << std::endl;
 	std::cout << "\tLink time address: 0x" << std::hex << event.image_link_time_address << std::endl;
 
-	std::cout << "\tPath: ";
-
-	for (auto& path : event.device_path)
-	{
-		if (auto file = std::get_if<tcg_parser::device_path::media::file>(&path))
-		{
-			for (auto c : file->path)
-			{
-				std::cout << static_cast<char>(c);
-			}
-		}
-	}
-
-	std::cout << std::endl;
+	std::cout << "\tPath: " << tcg_parser::device_path::to_string(event.device_path) << std::endl;
 }
 
 void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_variable_boot& event)
