@@ -47,6 +47,12 @@ namespace tcg_parser
 			std::vector<uint8_t> variable_data;
 		};
 
+		struct efi_platform_firmware_blob
+		{
+			uint64_t blob_base;
+			uint64_t blob_length;
+		};
+
 		struct s_crtm_version
 		{
 		};
@@ -56,6 +62,10 @@ namespace tcg_parser
 
 #pragma pack(pop)
 
-	using event_payload_t = std::
-		variant<events::raw_event_t, events::efi_spec_id, events::efi_boot_services_application, events::efi_variable_boot>;
+	using event_payload_t = std::variant<
+		events::raw_event_t,
+		events::efi_spec_id,
+		events::efi_boot_services_application,
+		events::efi_variable_boot,
+		events::efi_platform_firmware_blob>;
 } // namespace tcg_parser

@@ -178,39 +178,34 @@ namespace tcg_parser
 
 			events::efi_spec_id event;
 
-			stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_spec_id, digest_sizes));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_spec_id, digest_sizes));
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			uint32_t number_of_algorithms;
 
-			stream.read(reinterpret_cast<char*>(&number_of_algorithms), sizeof(number_of_algorithms));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&number_of_algorithms), sizeof(number_of_algorithms));
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			event.digest_sizes.resize(number_of_algorithms);
 
-			stream.read(
-				reinterpret_cast<char*>(event.digest_sizes.data()),
-				number_of_algorithms * sizeof(events::efi_spec_id::digest_size)
-			);
-
-			if (!stream.good())
+			if (stream.read(
+					reinterpret_cast<char*>(event.digest_sizes.data()),
+					number_of_algorithms * sizeof(events::efi_spec_id::digest_size)
+				);
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			uint8_t vendor_info_size;
 
-			stream.read(reinterpret_cast<char*>(&vendor_info_size), sizeof(vendor_info_size));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&vendor_info_size), sizeof(vendor_info_size)); !stream.good())
 			{
 				return buffer;
 			}
@@ -224,25 +219,30 @@ namespace tcg_parser
 
 		switch (header.event_type)
 		{
-		case EV_EFI_PLATFORM_FIRMWARE_BLOB:
-			return buffer;
+		case EV_EFI_PLATFORM_FIRMWARE_BLOB: {
+			events::efi_platform_firmware_blob event;
+
+			if (stream.read(reinterpret_cast<char*>(&event), sizeof(event)); !stream.good())
+			{
+				return buffer;
+			}
+
+			return event;
+		}
 		case EV_EVENT_TAG:
 			return buffer;
 		case EV_EFI_BOOT_SERVICES_APPLICATION: {
 			events::efi_boot_services_application event;
 
-			stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_boot_services_application, device_path));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_boot_services_application, device_path));
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			uint64_t size_of_device_path;
 
-			stream.read(reinterpret_cast<char*>(&size_of_device_path), sizeof(size_of_device_path));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&size_of_device_path), sizeof(size_of_device_path)); !stream.good())
 			{
 				return buffer;
 			}
@@ -257,45 +257,38 @@ namespace tcg_parser
 		case EV_EFI_VARIABLE_BOOT: {
 			events::efi_variable_boot event;
 
-			stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_variable_boot, unicode_name));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&event), offsetof(events::efi_variable_boot, unicode_name));
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			uint64_t unicode_name_length;
 
-			stream.read(reinterpret_cast<char*>(&unicode_name_length), sizeof(unicode_name_length));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&unicode_name_length), sizeof(unicode_name_length)); !stream.good())
 			{
 				return buffer;
 			}
 
 			uint64_t variable_data_length;
 
-			stream.read(reinterpret_cast<char*>(&variable_data_length), sizeof(variable_data_length));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&variable_data_length), sizeof(variable_data_length));
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			event.unicode_name.resize(unicode_name_length);
 
-			stream.read(reinterpret_cast<char*>(event.unicode_name.data()), unicode_name_length * sizeof(char16_t));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(event.unicode_name.data()), unicode_name_length * sizeof(char16_t));
+				!stream.good())
 			{
 				return buffer;
 			}
 
 			event.variable_data.resize(variable_data_length);
 
-			stream.read(reinterpret_cast<char*>(event.variable_data.data()), variable_data_length);
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(event.variable_data.data()), variable_data_length); !stream.good())
 			{
 				return buffer;
 			}
@@ -323,25 +316,19 @@ namespace tcg_parser
 
 		tcg_pgr_event_2 header;
 
-		stream.read(reinterpret_cast<char*>(&header.pcr_index), sizeof(header.pcr_index));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&header.pcr_index), sizeof(header.pcr_index)); !stream.good())
 		{
 			return {};
 		}
 
-		stream.read(reinterpret_cast<char*>(&header.event_type), sizeof(header.event_type));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&header.event_type), sizeof(header.event_type)); !stream.good())
 		{
 			return {};
 		}
 
 		uint32_t digest_values_count;
 
-		stream.read(reinterpret_cast<char*>(&digest_values_count), sizeof(digest_values_count));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&digest_values_count), sizeof(digest_values_count)); !stream.good())
 		{
 			return {};
 		}
@@ -350,9 +337,7 @@ namespace tcg_parser
 		{
 			uint16_t hash_alg;
 
-			stream.read(reinterpret_cast<char*>(&hash_alg), sizeof(hash_alg));
-
-			if (!stream.good())
+			if (stream.read(reinterpret_cast<char*>(&hash_alg), sizeof(hash_alg)); !stream.good())
 			{
 				return {};
 			}
@@ -368,9 +353,7 @@ namespace tcg_parser
 
 			std::string digest(entry->digest_size, '\0');
 
-			stream.read(digest.data(), size(digest));
-
-			if (!stream.good())
+			if (stream.read(digest.data(), size(digest)); !stream.good())
 			{
 				return {};
 			}
@@ -380,9 +363,7 @@ namespace tcg_parser
 
 		uint32_t event_size;
 
-		stream.read(reinterpret_cast<char*>(&event_size), sizeof(event_size));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&event_size), sizeof(event_size)); !stream.good())
 		{
 			return {};
 		}
@@ -407,32 +388,24 @@ namespace tcg_parser
 
 		tcg_pgr_event_1 header;
 
-		stream.read(reinterpret_cast<char*>(&header.pcr_index), sizeof(header.pcr_index));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&header.pcr_index), sizeof(header.pcr_index)); !stream.good())
 		{
 			return {};
 		}
 
-		stream.read(reinterpret_cast<char*>(&header.event_type), sizeof(header.event_type));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&header.event_type), sizeof(header.event_type)); !stream.good())
 		{
 			return {};
 		}
 
-		stream.read(header.digest.data(), size(header.digest));
-
-		if (!stream.good())
+		if (stream.read(header.digest.data(), size(header.digest)); !stream.good())
 		{
 			return {};
 		}
 
 		uint32_t event_size;
 
-		stream.read(reinterpret_cast<char*>(&event_size), sizeof(event_size));
-
-		if (!stream.good())
+		if (stream.read(reinterpret_cast<char*>(&event_size), sizeof(event_size)); !stream.good())
 		{
 			return {};
 		}

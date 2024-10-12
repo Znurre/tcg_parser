@@ -68,6 +68,14 @@ void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::e
 	std::cout << std::endl;
 }
 
+void handle_event(const tcg_parser::tcg_pgr_event_2& header, const tcg_parser::events::efi_platform_firmware_blob& event)
+{
+	std::cout << "EFI_PLATFORM_FIRMWARE_BLOB:" << std::endl;
+
+	std::cout << "\tBlob base: " << std::hex << event.blob_base << std::endl;
+	std::cout << "\tBlob length: " << std::hex << event.blob_length << std::endl;
+}
+
 int main()
 {
 	std::ifstream stream("/home/znurre/boot.tcl", std::ios::binary | std::ios::in);

@@ -131,9 +131,7 @@ namespace tcg_parser
 
 			while (stream.good())
 			{
-				stream.read(reinterpret_cast<char*>(&header), sizeof(header));
-
-				if (!stream.good())
+				if (stream.read(reinterpret_cast<char*>(&header), sizeof(header)); !stream.good())
 				{
 					return paths;
 				}
@@ -146,9 +144,7 @@ namespace tcg_parser
 					case 0x1:
 						hardware::pci path;
 
-						stream.read(reinterpret_cast<char*>(&path), sizeof(path));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
 						{
 							return paths;
 						}
@@ -165,9 +161,7 @@ namespace tcg_parser
 					case 0x1: // ACPI device path
 						acpi::acpi path;
 
-						stream.read(reinterpret_cast<char*>(&path), sizeof(path));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
 						{
 							return paths;
 						}
@@ -188,9 +182,7 @@ namespace tcg_parser
 
 #pragma pack(pop)
 
-						stream.read(reinterpret_cast<char*>(&block), sizeof(block));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&block), sizeof(block)); !stream.good())
 						{
 							return paths;
 						}
@@ -233,9 +225,7 @@ namespace tcg_parser
 					case 0x17: // NVM Express Namespace
 						messaging::nvme_namespace path;
 
-						stream.read(reinterpret_cast<char*>(&path), sizeof(path));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
 						{
 							return paths;
 						}
@@ -252,9 +242,7 @@ namespace tcg_parser
 					case 0x1: // Hard drive
 						media::hard_drive path;
 
-						stream.read(reinterpret_cast<char*>(&path), sizeof(path));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
 						{
 							return paths;
 						}
@@ -285,9 +273,7 @@ namespace tcg_parser
 					case 0x6: { // PIWG firmware files
 						media::piwg_firmware_files path;
 
-						stream.read(reinterpret_cast<char*>(&path), sizeof(path));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
 						{
 							return paths;
 						}
@@ -299,9 +285,7 @@ namespace tcg_parser
 					case 0x7: { // PIWG firmware volume
 						media::piwg_firmware_volume path;
 
-						stream.read(reinterpret_cast<char*>(&path), sizeof(path));
-
-						if (!stream.good())
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
 						{
 							return paths;
 						}
@@ -322,9 +306,7 @@ namespace tcg_parser
 					break;
 				}
 
-				stream.seekg(header.length - sizeof(header), std::ios::cur);
-
-				if (!stream.good())
+				if (stream.seekg(header.length - sizeof(header), std::ios::cur); !stream.good())
 				{
 					return paths;
 				}
