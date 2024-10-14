@@ -18,6 +18,13 @@ namespace tcg_parser
 
 	namespace device_path
 	{
+		struct unknown
+		{
+			uint8_t type;
+			uint8_t sub_type;
+			uint16_t length;
+		};
+
 		namespace hardware
 		{
 			struct pci
@@ -78,12 +85,20 @@ namespace tcg_parser
 			{
 				std::array<uint8_t, 16> firmware_file_name;
 			};
+
+			struct relative_offset_range
+			{
+				uint32_t reserved;
+				uint64_t starting_offset;
+				uint64_t ending_offset;
+			};
 		} // namespace media
 	}	  // namespace device_path
 
 #pragma pack(pop)
 
 	using device_path_t = std::variant<
+		device_path::unknown,
 		device_path::hardware::pci,
 		device_path::acpi::acpi,
 		device_path::acpi::extended_acpi,
@@ -91,7 +106,8 @@ namespace tcg_parser
 		device_path::media::hard_drive,
 		device_path::media::file,
 		device_path::media::piwg_firmware_volume,
-		device_path::media::piwg_firmware_files>;
+		device_path::media::piwg_firmware_files,
+		device_path::media::relative_offset_range>;
 
 	namespace device_path
 	{
@@ -119,16 +135,7 @@ namespace tcg_parser
 
 		std::vector<device_path_t> parse(std::istream& stream)
 		{
-#pragma pack(push, 1)
-
-			struct
-			{
-				uint8_t type;
-				uint8_t sub_type;
-				uint16_t length;
-			} header;
-
-#pragma pack(pop)
+			unknown header;
 
 			std::vector<device_path_t> paths;
 
@@ -297,6 +304,18 @@ namespace tcg_parser
 
 						continue;
 					}
+					case 0x8: { // Relative offset range
+						media::relative_offset_range path;
+
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
+						{
+							return paths;
+						}
+
+						paths.push_back(path);
+
+						continue;
+					}
 					}
 					break;
 				case 0x5: // BIOS boot specification device path
@@ -309,6 +328,8 @@ namespace tcg_parser
 					break;
 				}
 
+				paths.push_back(header);
+
 				if (stream.seekg(header.length - sizeof(header), std::ios::cur); !stream.good())
 				{
 					return paths;
@@ -316,6 +337,11 @@ namespace tcg_parser
 			}
 
 			return paths;
+		}
+
+		std::string to_string(const device_path::unknown& path)
+		{
+			return std::format("\\Unknown({:x}, {:x})", path.type, path.sub_type);
 		}
 
 		std::string to_string(const device_path::hardware::pci& path)
@@ -473,6 +499,11 @@ namespace tcg_parser
 					path.partition_size
 				);
 			}
+		}
+
+		std::string to_string(const media::relative_offset_range& path)
+		{
+			return std::format("\\Offset(0x{:x}, 0x{:x})", path.starting_offset, path.ending_offset);
 		}
 
 		std::string to_string(const device_path_t& path)
