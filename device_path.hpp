@@ -32,6 +32,13 @@ namespace tcg_parser
 				uint8_t function;
 				uint8_t device;
 			};
+
+			struct mmio
+			{
+				uint32_t memory_type;
+				uint64_t start_address;
+				uint64_t end_address;
+			};
 		} // namespace hardware
 
 		namespace acpi
@@ -56,6 +63,24 @@ namespace tcg_parser
 			{
 				uint32_t namespace_identifier;
 				std::array<uint8_t, 8> extended_unique_identifier;
+			};
+
+			struct sata
+			{
+				uint16_t hba_port;
+				uint16_t port_multiplier_port;
+				uint16_t logical_unit_number;
+			};
+
+			struct lun
+			{
+				uint8_t lun;
+			};
+
+			struct usb
+			{
+				uint8_t parent_port;
+				uint8_t interface;
 			};
 		} // namespace messaging
 
@@ -100,9 +125,13 @@ namespace tcg_parser
 	using device_path_t = std::variant<
 		device_path::unknown,
 		device_path::hardware::pci,
+		device_path::hardware::mmio,
 		device_path::acpi::acpi,
 		device_path::acpi::extended_acpi,
 		device_path::messaging::nvme_namespace,
+		device_path::messaging::sata,
+		device_path::messaging::lun,
+		device_path::messaging::usb,
 		device_path::media::hard_drive,
 		device_path::media::file,
 		device_path::media::piwg_firmware_volume,
@@ -151,7 +180,7 @@ namespace tcg_parser
 				case 0x1: // Hardware device path
 					switch (header.sub_type)
 					{
-					case 0x1:
+					case 0x1: {
 						hardware::pci path;
 
 						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
@@ -162,6 +191,19 @@ namespace tcg_parser
 						paths.push_back(path);
 
 						continue;
+					}
+					case 0x3: { // Memory Mapped
+						hardware::mmio path;
+
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
+						{
+							return paths;
+						}
+
+						paths.push_back(path);
+
+						continue;
+					}
 					}
 
 					break;
@@ -232,7 +274,43 @@ namespace tcg_parser
 				case 0x3: // Messaging device path
 					switch (header.sub_type)
 					{
-					case 0x17: // NVM Express Namespace
+					case 0x5: { // USB
+						messaging::usb path;
+
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
+						{
+							return paths;
+						}
+
+						paths.push_back(path);
+
+						continue;
+					}
+					case 0x11: { // LUN
+						messaging::lun path;
+
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
+						{
+							return paths;
+						}
+
+						paths.push_back(path);
+
+						continue;
+					}
+					case 0x12: { // SATA
+						messaging::sata path;
+
+						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
+						{
+							return paths;
+						}
+
+						paths.push_back(path);
+
+						continue;
+					}
+					case 0x17: { // NVM Express Namespace
 						messaging::nvme_namespace path;
 
 						if (stream.read(reinterpret_cast<char*>(&path), sizeof(path)); !stream.good())
@@ -243,6 +321,7 @@ namespace tcg_parser
 						paths.push_back(path);
 
 						continue;
+					}
 					}
 
 					break;
@@ -349,6 +428,11 @@ namespace tcg_parser
 			return std::format("\\Pci(0x{:x}, 0x{:x})", path.device, path.function);
 		}
 
+		std::string to_string(const device_path::hardware::mmio& path)
+		{
+			return std::format("\\MemoryMapped({}, 0x{:x}, 0x{:x})", path.memory_type, path.start_address, path.end_address);
+		}
+
 		std::string to_string(const device_path::acpi::acpi& path)
 		{
 			switch (path.hid)
@@ -392,6 +476,21 @@ namespace tcg_parser
 				path.extended_unique_identifier[6],
 				path.extended_unique_identifier[7]
 			);
+		}
+
+		std::string to_string(const device_path::messaging::sata& path)
+		{
+			return std::format("\\Sata({}, {}, {})", path.hba_port, path.port_multiplier_port, path.logical_unit_number);
+		}
+
+		std::string to_string(const device_path::messaging::lun& path)
+		{
+			return std::format("\\Unit({})", path.lun);
+		}
+
+		std::string to_string(const device_path::messaging::usb& path)
+		{
+			return std::format("\\USB({}, {})", path.parent_port, path.interface);
 		}
 
 		std::string to_string(const media::file& path)
